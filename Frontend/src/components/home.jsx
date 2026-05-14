@@ -126,7 +126,7 @@ export default function Home() {
       <header className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center gap-4">
           {/* Logo */}
-          <div className="flex items-center gap-2 mr-4 shrink-0">
+          <div className="hidden items-center gap-2 mr-4 shrink-0 md:flex">
             <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
               <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}

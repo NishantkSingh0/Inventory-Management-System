@@ -5,6 +5,7 @@ import (
 	"Backend/handlers"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -33,7 +34,13 @@ func loggingMiddleware(next http.Handler) http.Handler {
 		start := time.Now()
 		wrapped := &statusRecorder{ResponseWriter: w, status: 200}
 		next.ServeHTTP(wrapped, r)
-		log.Printf("%s %s → %d (%s)", r.Method, r.URL.Path, wrapped.status, time.Since(start))
+
+		log.Printf("%s %s → %d (%s)",
+			r.Method,
+			r.URL.Path,
+			wrapped.status,
+			time.Since(start),
+		)
 	})
 }
 
@@ -51,7 +58,7 @@ func main() {
 	// 1. Connect to PostgreSQL
 	db.Connect()
 
-	// 2. Run schema migrations (idempotent — safe to run every startup)
+	// 2. Run schema migrations
 	db.Migrate()
 
 	// 3. Register routes
@@ -64,17 +71,34 @@ func main() {
 	api.HandleFunc("/invoices/{id:[0-9]+}", handlers.GetInvoice).Methods(http.MethodGet)
 	api.HandleFunc("/invoices/{id:[0-9]+}", handlers.DeleteInvoice).Methods(http.MethodDelete)
 
-	// Products (invoice items)
+	// Products
 	api.HandleFunc("/products/{id:[0-9]+}", handlers.UpdateProduct).Methods(http.MethodPut)
 	api.HandleFunc("/products/{id:[0-9]+}", handlers.DeleteProduct).Methods(http.MethodDelete)
 
 	// Search
 	api.HandleFunc("/search", handlers.Search).Methods(http.MethodGet)
 
-	// 4. Start server — CORS wraps the router, logging wraps CORS
-	addr := ":8080"
+	// Health check
+	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("IMS Backend Running"))
+	})
+
+	// 4. Dynamic Port for Render
+	port := os.Getenv("PORT")
+
+	// Local fallback
+	if port == "" {
+		port = "8080"
+	}
+
+	addr := ":" + port
+
 	log.Printf("IMS Backend listening on %s", addr)
-	if err := http.ListenAndServe(addr, loggingMiddleware(corsMiddleware(r))); err != nil {
+
+	if err := http.ListenAndServe(
+		addr,
+		loggingMiddleware(corsMiddleware(r)),
+	); err != nil {
 		log.Fatalf("Server error: %v", err)
 	}
 }
